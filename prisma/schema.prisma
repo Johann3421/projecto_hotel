@@ -1,0 +1,372 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== AUTH ====================
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(GUEST)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  guestProfile Guest?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ==================== HUÉSPEDES ====================
+model Guest {
+  id             String       @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String       @unique
+  phone          String?
+  nationality    String?
+  documentType   DocumentType @default(DNI)
+  documentNumber String?
+  birthDate      DateTime?
+  vipStatus      Boolean      @default(false)
+  notes          String?      @db.Text
+  userId         String?      @unique
+  user           User?        @relation(fields: [userId], references: [id])
+  reservations   Reservation[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([email])
+  @@index([documentNumber])
+  @@map("guests")
+}
+
+// ==================== HABITACIONES ====================
+model RoomType {
+  id               String            @id @default(cuid())
+  name             String
+  slug             String            @unique
+  description      String            @db.Text
+  shortDesc        String?
+  basePrice        Decimal           @db.Decimal(10, 2)
+  weekendSurcharge Decimal           @db.Decimal(5, 2) @default(0.15)
+  maxGuests        Int
+  bedConfiguration String
+  sizeSqm          Int?
+  floor            String?
+  view             String?
+  amenities        RoomTypeAmenity[]
+  images           RoomTypeImage[]
+  rooms            Room[]
+  seasonalPrices   SeasonalPrice[]
+  extras           RoomTypeExtra[]
+  reservations     Reservation[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@map("room_types")
+}
+
+model RoomTypeImage {
+  id         String   @id @default(cuid())
+  url        String
+  alt        String?
+  caption    String?
+  position   Int      @default(0)
+  roomTypeId String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@map("room_type_images")
+}
+
+model Amenity {
+  id        String            @id @default(cuid())
+  name      String
+  icon      String
+  category  AmenityCategory
+  roomTypes RoomTypeAmenity[]
+
+  @@map("amenities")
+}
+
+model RoomTypeAmenity {
+  roomTypeId String
+  amenityId  String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  amenity    Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([roomTypeId, amenityId])
+  @@map("room_type_amenities")
+}
+
+model Room {
+  id           String            @id @default(cuid())
+  number       String            @unique
+  floor        Int
+  status       RoomStatus        @default(AVAILABLE)
+  notes        String?           @db.Text
+  lastCleaned  DateTime?
+  roomTypeId   String
+  roomType     RoomType          @relation(fields: [roomTypeId], references: [id])
+  reservations ReservationRoom[]
+  statusLogs   RoomStatusLog[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([status])
+  @@index([roomTypeId])
+  @@map("rooms")
+}
+
+model RoomStatusLog {
+  id         String     @id @default(cuid())
+  roomId     String
+  room       Room       @relation(fields: [roomId], references: [id])
+  fromStatus RoomStatus
+  toStatus   RoomStatus
+  note       String?
+  createdBy  String?
+  createdAt  DateTime   @default(now())
+
+  @@map("room_status_logs")
+}
+
+// ==================== PRECIOS DINÁMICOS ====================
+model SeasonalPrice {
+  id         String   @id @default(cuid())
+  name       String
+  startDate  DateTime
+  endDate    DateTime
+  multiplier Decimal  @db.Decimal(5, 2)
+  roomTypeId String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@map("seasonal_prices")
+}
+
+// ==================== EXTRAS / ADD-ONS ====================
+model Extra {
+  id                String             @id @default(cuid())
+  name              String
+  description       String?
+  price             Decimal            @db.Decimal(10, 2)
+  priceType         ExtraPriceType
+  icon              String?
+  available         Boolean            @default(true)
+  roomTypes         RoomTypeExtra[]
+  reservationExtras ReservationExtra[]
+
+  @@map("extras")
+}
+
+model RoomTypeExtra {
+  roomTypeId String
+  extraId    String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  extra      Extra    @relation(fields: [extraId], references: [id])
+
+  @@id([roomTypeId, extraId])
+  @@map("room_type_extras")
+}
+
+// ==================== RESERVAS ====================
+model Reservation {
+  id                String             @id @default(cuid())
+  confirmationCode  String             @unique
+  checkIn           DateTime
+  checkOut          DateTime
+  nights            Int
+  adults            Int
+  children          Int                @default(0)
+  status            ReservationStatus  @default(PENDING)
+  source            BookingSource      @default(DIRECT_WEB)
+  roomTypeId        String
+  roomType          RoomType           @relation(fields: [roomTypeId], references: [id])
+  assignedRooms     ReservationRoom[]
+  guestId           String
+  guest             Guest              @relation(fields: [guestId], references: [id])
+  extras            ReservationExtra[]
+  payments          Payment[]
+  basePricePerNight Decimal            @db.Decimal(10, 2)
+  totalRoomCost     Decimal            @db.Decimal(10, 2)
+  totalExtrasCost   Decimal            @db.Decimal(10, 2)
+  taxAmount         Decimal            @db.Decimal(10, 2)
+  totalAmount       Decimal            @db.Decimal(10, 2)
+  checkedInAt       DateTime?
+  checkedOutAt      DateTime?
+  cancelledAt       DateTime?
+  cancellationReason String?
+  notes             String?            @db.Text
+  internalNotes     String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([checkIn, checkOut])
+  @@index([status])
+  @@index([guestId])
+  @@index([confirmationCode])
+  @@map("reservations")
+}
+
+model ReservationRoom {
+  id            String      @id @default(cuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  roomId        String
+  room          Room        @relation(fields: [roomId], references: [id])
+
+  @@unique([reservationId, roomId])
+  @@map("reservation_rooms")
+}
+
+model ReservationExtra {
+  id            String      @id @default(cuid())
+  quantity      Int         @default(1)
+  unitPrice     Decimal     @db.Decimal(10, 2)
+  totalPrice    Decimal     @db.Decimal(10, 2)
+  extraId       String
+  extra         Extra       @relation(fields: [extraId], references: [id])
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_extras")
+}
+
+// ==================== PAGOS ====================
+model Payment {
+  id            String        @id @default(cuid())
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  reference     String?
+  notes         String?
+  reservationId String
+  reservation   Reservation   @relation(fields: [reservationId], references: [id])
+  createdAt     DateTime      @default(now())
+
+  @@map("payments")
+}
+
+// ==================== BLOQUEOS MANUALES ====================
+model RoomBlock {
+  id        String   @id @default(cuid())
+  roomId    String
+  startDate DateTime
+  endDate   DateTime
+  reason    String
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@map("room_blocks")
+}
+
+// ==================== ENUMS ====================
+enum Role {
+  GUEST
+  RECEPTIONIST
+  HOUSEKEEPER
+  MANAGER
+}
+
+enum DocumentType {
+  DNI
+  PASSPORT
+  CE
+  RUC
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  HOUSEKEEPING
+  MAINTENANCE
+  OUT_OF_ORDER
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingSource {
+  DIRECT_WEB
+  WALK_IN
+  PHONE
+  OTA_BOOKING
+  OTA_EXPEDIA
+  OTHER
+}
+
+enum AmenityCategory {
+  ROOM
+  BATHROOM
+  ENTERTAINMENT
+  FOOD_DRINK
+  SERVICE
+  WELLNESS
+}
+
+enum ExtraPriceType {
+  PER_NIGHT
+  PER_STAY
+  PER_PERSON
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  YAPE
+  PLIN
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIAL
+}

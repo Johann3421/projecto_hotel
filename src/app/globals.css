@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Navy palette */
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #d9e2ec;
+  --color-navy-300: #8dafc7;
+  --color-navy-500: #2d5a7b;
+  --color-navy-700: #1a3a50;
+  --color-navy-900: #0d1f2d;
+
+  /* Gold palette */
+  --color-gold-100: #fdf6e3;
+  --color-gold-200: #f9e8b8;
+  --color-gold-400: #d4a843;
+  --color-gold-500: #b8922a;
+  --color-gold-700: #8a6a1a;
+
+  /* Ivory palette */
+  --color-ivory-50: #fdfcf9;
+  --color-ivory-100: #f8f5ef;
+  --color-ivory-200: #f0ead9;
+  --color-ivory-300: #e5dcc8;
+
+  /* Fonts */
+  --font-serif: var(--font-lora), Georgia, serif;
+  --font-sans: var(--font-lato), system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-luxury: 0 2px 8px 0 rgb(45 90 123 / 0.08), 0 12px 32px -4px rgb(45 90 123 / 0.12);
+  --shadow-luxury-hover: 0 4px 16px 0 rgb(45 90 123 / 0.14), 0 24px 48px -8px rgb(45 90 123 / 0.18);
+  --shadow-card-gold: 0 0 0 1px rgb(212 168 67 / 0.2), 0 8px 24px -4px rgb(212 168 67 / 0.15);
+  --shadow-room-gallery: 0 32px 72px -16px rgb(13 31 45 / 0.45);
+
+  /* Animations */
+  --animate-fade-luxury: fade-luxury 0.6s ease-out forwards;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-room-pan: room-pan 12s ease-in-out infinite;
+}
+
+@keyframes fade-luxury {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes room-pan {
+  0%, 100% { transform: scale(1.05) translateX(0); }
+  50% { transform: scale(1.05) translateX(-1.5%); }
+}
+
+:root {
+  --background: #fdfcf9;
+  --foreground: #1e293b;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Utility classes */
+.animate-fade-luxury {
+  animation: fade-luxury 0.6s ease-out forwards;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+.animate-room-pan {
+  animation: room-pan 12s ease-in-out infinite;
+}
+
+/* Scrollbar styling for tape chart */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
