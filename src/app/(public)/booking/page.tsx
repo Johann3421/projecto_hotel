@@ -7,6 +7,7 @@ import AvailabilitySearchBar from "@/components/public/AvailabilitySearchBar"
 import Button from "@/components/ui/Button"
 import Badge from "@/components/ui/Badge"
 import Skeleton from "@/components/ui/Skeleton"
+import { getPrimaryRoomImage } from "@/lib/room-stock-images"
 import { useBookingStore } from "@/store/booking"
 import { Users, Maximize2, BedDouble } from "lucide-react"
 
@@ -135,7 +136,7 @@ export default function BookingStep1Page() {
                   {/* Image */}
                   <div className="w-full md:w-48 h-36 rounded-xl overflow-hidden bg-ivory-100 shrink-0">
                     <img
-                      src={rt.imageUrl || "/images/rooms/placeholder.jpg"}
+                      src={getPrimaryRoomImage(rt.slug, rt.name, rt.imageUrl)}
                       alt={rt.name}
                       className="w-full h-full object-cover"
                     />

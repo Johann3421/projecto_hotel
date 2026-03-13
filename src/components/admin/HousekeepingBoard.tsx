@@ -8,7 +8,8 @@ interface Room {
   floor: number
   status: string
   notes: string | null
-  type: { name: string }
+  type?: { name: string }
+  roomType?: { name: string }
 }
 
 interface HousekeepingBoardProps {
@@ -17,13 +18,14 @@ interface HousekeepingBoardProps {
 }
 
 export default function HousekeepingBoard({ rooms, onStatusChange }: HousekeepingBoardProps) {
-  const cleaning = rooms.filter((r) => r.status === "CLEANING")
+  const housekeeping = rooms.filter((r) => r.status === "HOUSEKEEPING")
   const maintenance = rooms.filter((r) => r.status === "MAINTENANCE")
   const available = rooms.filter((r) => r.status === "AVAILABLE")
   const occupied = rooms.filter((r) => r.status === "OCCUPIED")
+  const getTypeName = (room: Room) => room.roomType?.name ?? room.type?.name ?? "Sin tipo"
 
   const columns = [
-    { title: "Pendientes de Limpieza", items: cleaning, emptyMsg: "Sin habitaciones pendientes" },
+    { title: "Pendientes de Limpieza", items: housekeeping, emptyMsg: "Sin habitaciones pendientes" },
     { title: "En Mantenimiento", items: maintenance, emptyMsg: "Sin mantenimiento" },
     { title: "Disponibles", items: available, emptyMsg: "Sin disponibles" },
     { title: "Ocupadas", items: occupied, emptyMsg: "Sin ocupadas" },
@@ -47,7 +49,7 @@ export default function HousekeepingBoard({ rooms, onStatusChange }: Housekeepin
                 key={room.id}
                 roomNumber={room.number}
                 floor={room.floor}
-                typeName={room.type.name}
+                typeName={getTypeName(room)}
                 status={room.status}
                 notes={room.notes}
                 onStatusChange={(newStatus) => onStatusChange(room.id, newStatus)}

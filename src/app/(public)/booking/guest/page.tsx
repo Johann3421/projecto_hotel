@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useBookingStore } from "@/store/booking"
 import BookingStepIndicator from "@/components/public/BookingStepIndicator"
@@ -34,9 +34,18 @@ export default function BookingGuestPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  useEffect(() => {
+    if (!canProceedToGuest) {
+      router.replace("/booking")
+    }
+  }, [canProceedToGuest, router])
+
   if (!canProceedToGuest) {
-    router.replace("/booking")
-    return null
+    return (
+      <div className="py-20 text-center">
+        <div className="w-8 h-8 border-2 border-gold-400 border-t-transparent rounded-full animate-spin mx-auto" />
+      </div>
+    )
   }
 
   function validate() {

@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation"
+import { fallbackRoomTypes, getFallbackRoomType } from "@/lib/fallback-room-types"
 import { prisma } from "@/lib/prisma"
+import { getRoomGalleryImages } from "@/lib/room-stock-images"
 import { generateSEOMetadata, generateRoomJsonLd } from "@/lib/seo"
 import RoomGallery from "@/components/public/RoomGallery"
-import AvailabilityCalendar from "@/components/public/AvailabilityCalendar"
+import RoomAvailabilityCalendar from "@/components/public/RoomAvailabilityCalendar"
 import RoomTourWrapper from "@/components/public/RoomTourWrapper"
 import Button from "@/components/ui/Button"
 import Badge from "@/components/ui/Badge"
@@ -14,16 +16,26 @@ export async function generateStaticParams() {
     const types = await prisma.roomType.findMany({ select: { slug: true } })
     return types.map((t: any) => ({ slug: t.slug }))
   } catch {
-    return []
+    return fallbackRoomTypes.map((t) => ({ slug: t.slug }))
   }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const rt = await prisma.roomType.findUnique({
-    where: { slug },
-    select: { name: true, description: true },
-  })
+  let rt: { name: string; description: string } | null = null
+
+  try {
+    rt = await prisma.roomType.findUnique({
+      where: { slug },
+      select: { name: true, description: true },
+    })
+  } catch {
+    const fallbackRoomType = getFallbackRoomType(slug)
+    rt = fallbackRoomType
+      ? { name: fallbackRoomType.name, description: fallbackRoomType.description }
+      : null
+  }
+
   if (!rt) return {}
   return generateSEOMetadata({
     title: rt.name,
@@ -34,16 +46,24 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function RoomDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const roomType = await prisma.roomType.findUnique({
-    where: { slug },
-    include: {
-      images: { orderBy: { position: "asc" } },
-      amenities: { include: { amenity: true } },
-      extras: { include: { extra: true } },
-      rooms: { select: { id: true, number: true, status: true } },
-      seasonalPrices: true,
-    },
-  })
+  let roomType: any = null
+  let usingFallbackRoom = false
+
+  try {
+    roomType = await prisma.roomType.findUnique({
+      where: { slug },
+      include: {
+        images: { orderBy: { position: "asc" } },
+        amenities: { include: { amenity: true } },
+        extras: { include: { extra: true } },
+        rooms: { select: { id: true, number: true, status: true } },
+        seasonalPrices: true,
+      },
+    })
+  } catch {
+    roomType = getFallbackRoomType(slug)
+    usingFallbackRoom = !!roomType
+  }
 
   if (!roomType) notFound()
 
@@ -52,7 +72,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ slu
     description: roomType.description,
     slug: roomType.slug,
     basePrice: Number(roomType.basePrice),
-    images: roomType.images.map((img: any) => img.url),
+    images: getRoomGalleryImages(roomType.slug, roomType.name, roomType.images).map((img) => img.url),
   })
 
   const availableCount = roomType.rooms.filter((r: any) => r.status === "AVAILABLE").length
@@ -75,6 +95,14 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ slu
 
       <div className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
+          {usingFallbackRoom && (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+              <p className="font-sans text-sm text-amber-900">
+                Esta ficha se muestra con datos de demostración porque la base de datos no está accesible ahora mismo.
+              </p>
+            </div>
+          )}
+
           {/* Breadcrumbs */}
           <nav className="mb-6 font-sans text-sm text-slate-500">
             <Link href="/" className="hover:text-navy-900 transition-colors">Inicio</Link>
@@ -86,10 +114,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ slu
 
           {/* Gallery */}
           <RoomGallery
-            images={roomType.images.map((img: any) => ({
-              url: img.url,
-              alt: img.alt || roomType.name,
-            }))}
+            images={getRoomGalleryImages(roomType.slug, roomType.name, roomType.images)}
           />
 
           {/* Content Grid */}
@@ -213,7 +238,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ slu
 
                   {/* Calendar */}
                   <div className="mb-4">
-                    <AvailabilityCalendar roomTypeId={roomType.id} checkIn={null} checkOut={null} onDateChange={() => {}} />
+                    <RoomAvailabilityCalendar roomTypeId={roomType.id} />
                   </div>
 
                   <Link href={`/booking?roomType=${roomType.slug}`}>

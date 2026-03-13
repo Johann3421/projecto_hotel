@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
+import { canAccessAdminPath } from "@/lib/admin-permissions"
+import { useCurrentRole } from "@/hooks/useCurrentRole"
 import { usePMSStore } from "@/store/pms"
 import {
   LayoutDashboard,
@@ -13,6 +15,9 @@ import {
   Users,
   Receipt,
   BarChart3,
+  Tags,
+  Gift,
+  CalendarClock,
   LogOut,
   ChevronLeft,
   Menu,
@@ -22,6 +27,9 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/tape-chart", label: "Tape Chart", icon: CalendarRange },
   { href: "/admin/rooms", label: "Habitaciones", icon: BedDouble },
+  { href: "/admin/room-types", label: "Tipos", icon: Tags },
+  { href: "/admin/extras", label: "Extras", icon: Gift },
+  { href: "/admin/pricing", label: "Tarifas", icon: CalendarClock },
   { href: "/admin/reservations", label: "Reservas", icon: ClipboardList },
   { href: "/admin/housekeeping", label: "Housekeeping", icon: Sparkles },
   { href: "/admin/guests", label: "Huéspedes", icon: Users },
@@ -31,8 +39,10 @@ const NAV_ITEMS = [
 
 export default function AdminSidebar() {
   const pathname = usePathname()
-  const sidebarOpen = usePMSStore((s: any) => s.sidebarOpen)
-  const toggleSidebar = usePMSStore((s: any) => s.toggleSidebar)
+  const { role } = useCurrentRole()
+  const sidebarOpen = usePMSStore((state) => state.sidebarOpen)
+  const toggleSidebar = usePMSStore((state) => state.toggleSidebar)
+  const visibleItems = NAV_ITEMS.filter((item) => canAccessAdminPath(item.href, role))
 
   return (
     <>
@@ -68,7 +78,7 @@ export default function AdminSidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4">
           <ul className="space-y-1 px-3">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            {visibleItems.map(({ href, label, icon: Icon }) => {
               const isActive = pathname === href || (href !== "/admin" && pathname.startsWith(href))
               return (
                 <li key={href}>

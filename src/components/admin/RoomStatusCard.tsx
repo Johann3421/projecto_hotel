@@ -16,16 +16,17 @@ interface RoomStatusCardProps {
 const STATUS_CONFIG: Record<string, { variant: "success" | "warning" | "danger" | "info" | "gold" | "default"; label: string; color: string }> = {
   AVAILABLE: { variant: "success", label: "Disponible", color: "bg-green-50 border-green-200" },
   OCCUPIED: { variant: "info", label: "Ocupada", color: "bg-blue-50 border-blue-200" },
-  CLEANING: { variant: "warning", label: "Limpieza", color: "bg-amber-50 border-amber-200" },
+  HOUSEKEEPING: { variant: "warning", label: "Limpieza", color: "bg-amber-50 border-amber-200" },
   MAINTENANCE: { variant: "danger", label: "Mantenimiento", color: "bg-red-50 border-red-200" },
-  BLOCKED: { variant: "default", label: "Bloqueada", color: "bg-slate-50 border-slate-200" },
+  OUT_OF_ORDER: { variant: "default", label: "Fuera de servicio", color: "bg-slate-50 border-slate-200" },
 }
 
 const NEXT_STATUS: Record<string, string> = {
-  CLEANING: "AVAILABLE",
+  HOUSEKEEPING: "AVAILABLE",
   MAINTENANCE: "AVAILABLE",
-  AVAILABLE: "CLEANING",
-  OCCUPIED: "CLEANING",
+  OUT_OF_ORDER: "AVAILABLE",
+  AVAILABLE: "HOUSEKEEPING",
+  OCCUPIED: "HOUSEKEEPING",
 }
 
 export default function RoomStatusCard({ roomNumber, floor, typeName, status, notes, onStatusChange }: RoomStatusCardProps) {

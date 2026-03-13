@@ -117,19 +117,36 @@ npx prisma db seed
 npm run dev
 ```
 
+Estado validado en este repositorio:
+
+- `npm run dev` inicia correctamente.
+- `npm run build` compila correctamente para producción.
+- El proyecto ya incluye `Dockerfile`, `docker-compose.yml` y guía específica para Dokploy.
+
 5. **Abrir en el navegador:**
 - Portal público: [http://localhost:3000](http://localhost:3000)
 - Panel admin: [http://localhost:3000/admin](http://localhost:3000/admin)
+
+## 🐳 Docker y Dokploy
+
+Se añadió una configuración lista para contenedor con estos archivos:
+
+- `Dockerfile`
+- `docker-compose.yml`
+- `.env.example`
+- `docs/dokploy.md`
+
+Para despliegue preciso en Dokploy, sigue la guía de `docs/dokploy.md`.
 
 ## 🔑 Credenciales de Prueba
 
 | Rol | Email | Contraseña |
 |-----|-------|-----------|
-| Gerente | gerente@alturasgrand.pe | password123 |
+| Manager | manager@alturasgrand.pe | password123 |
 | Recepcionista | recepcion1@alturasgrand.pe | password123 |
 | Recepcionista | recepcion2@alturasgrand.pe | password123 |
-| Housekeeping | housekeeping1@alturasgrand.pe | password123 |
-| Housekeeping | housekeeping2@alturasgrand.pe | password123 |
+| Housekeeping | limpieza1@alturasgrand.pe | password123 |
+| Housekeeping | limpieza2@alturasgrand.pe | password123 |
 
 ## 🏠 Tipos de Habitación
 

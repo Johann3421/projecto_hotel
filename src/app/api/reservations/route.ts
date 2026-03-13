@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
+import type { Prisma } from "@/generated/prisma/client"
+import { requireAdminRoles } from "@/lib/admin-auth"
 import { prisma } from "@/lib/prisma"
 import { verifyAndAssignRoom } from "@/lib/availability"
-import { calculateReservationTotal, generateConfirmationCode } from "@/lib/pricing"
+import { generateConfirmationCode } from "@/lib/pricing"
 import { TAX_RATE } from "@/lib/utils"
 
 export async function POST(req: NextRequest) {
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
     const confirmationCode = generateConfirmationCode(reservationCount + 1)
 
     // Create reservation with all related data in a transaction
-    const reservation = await prisma.$transaction(async (tx: any) => {
+    const reservation = await prisma.$transaction(async (tx) => {
       // Verify and assign room inside the transaction (anti-overbooking)
       const assignedRoomId = await verifyAndAssignRoom(roomTypeId, checkInDate, checkOutDate, tx)
 
@@ -114,7 +116,7 @@ export async function POST(req: NextRequest) {
           },
           extras: extrasData.length > 0
             ? {
-                create: extrasData.map((e: any) => ({
+                create: extrasData.map((e) => ({
                   extraId: e.extraId,
                   quantity: e.quantity,
                   unitPrice: e.unitPrice,
@@ -147,13 +149,16 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireAdminRoles(["MANAGER", "RECEPTIONIST"])
+  if (!authResult.ok) return authResult.response
+
   const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get("page") || "1")
   const limit = parseInt(searchParams.get("limit") || "20")
   const status = searchParams.get("status")
   const search = searchParams.get("search")
 
-  const where: any = {}
+  const where: Prisma.ReservationWhereInput = {}
   if (status) where.status = status
   if (search) {
     where.OR = [
@@ -179,7 +184,21 @@ export async function GET(req: NextRequest) {
   ])
 
   return NextResponse.json({
-    reservations,
+    reservations: reservations.map((reservation) => ({
+      ...reservation,
+      subtotal: Number(reservation.totalRoomCost) + Number(reservation.totalExtrasCost),
+      totalAmount: Number(reservation.totalAmount),
+      taxAmount: Number(reservation.taxAmount),
+      rooms: reservation.assignedRooms.map(({ room }) => ({
+        room: {
+          id: room.id,
+          number: room.number,
+          type: {
+            name: room.roomType.name,
+          },
+        },
+      })),
+    })),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   })
 }

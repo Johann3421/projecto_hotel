@@ -1,6 +1,10 @@
+import { fallbackRoomTypes } from "@/lib/fallback-room-types"
 import { prisma } from "@/lib/prisma"
+import { getPrimaryRoomImage } from "@/lib/room-stock-images"
 import { generateSEOMetadata } from "@/lib/seo"
 import RoomCard from "@/components/public/RoomCard"
+
+export const dynamic = "force-dynamic"
 
 export const metadata = generateSEOMetadata({
   title: "Habitaciones & Suites",
@@ -19,14 +23,21 @@ interface RoomsPageProps {
 
 export default async function RoomsPage({ searchParams }: RoomsPageProps) {
   const params = await searchParams
-  const roomTypes = await prisma.roomType.findMany({
-    orderBy: { basePrice: "asc" },
-    include: {
-      images: { take: 1, orderBy: { position: "asc" } },
-      amenities: { take: 5, include: { amenity: true } },
-      rooms: { select: { id: true } },
-    },
-  })
+  let roomTypes: any[] = fallbackRoomTypes
+  let usingFallbackRooms = false
+
+  try {
+    roomTypes = await prisma.roomType.findMany({
+      orderBy: { basePrice: "asc" },
+      include: {
+        images: { take: 1, orderBy: { position: "asc" } },
+        amenities: { take: 5, include: { amenity: true } },
+        rooms: { select: { id: true } },
+      },
+    })
+  } catch {
+    usingFallbackRooms = true
+  }
 
   return (
     <div className="py-20 px-4 sm:px-6 lg:px-8">
@@ -57,6 +68,14 @@ export default async function RoomsPage({ searchParams }: RoomsPageProps) {
           </div>
         )}
 
+        {usingFallbackRooms && (
+          <div className="mb-10 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+            <p className="font-sans text-sm text-amber-900">
+              El catálogo se está mostrando con datos de demostración porque la conexión a PostgreSQL no es válida en este entorno.
+            </p>
+          </div>
+        )}
+
         {/* Room Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {roomTypes.map((rt: any) => (
@@ -69,7 +88,7 @@ export default async function RoomsPage({ searchParams }: RoomsPageProps) {
               maxGuests={rt.maxGuests}
               sizeSqm={rt.sizeSqm}
               bedConfiguration={rt.bedConfiguration}
-              imageUrl={rt.images[0]?.url || "/images/rooms/placeholder.jpg"}
+              imageUrl={getPrimaryRoomImage(rt.slug, rt.name, rt.images[0]?.url)}
               amenities={rt.amenities.map((a: any) => a.amenity.name)}
             />
           ))}

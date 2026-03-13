@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useBookingStore } from "@/store/booking"
 import { useBooking } from "@/hooks/useBooking"
@@ -25,9 +25,18 @@ export default function BookingSummaryPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [error, setError] = useState("")
 
+  useEffect(() => {
+    if (!canProceedToSummary) {
+      router.replace("/booking/extras")
+    }
+  }, [canProceedToSummary, router])
+
   if (!canProceedToSummary) {
-    router.replace("/booking/extras")
-    return null
+    return (
+      <div className="py-20 text-center">
+        <div className="w-8 h-8 border-2 border-gold-400 border-t-transparent rounded-full animate-spin mx-auto" />
+      </div>
+    )
   }
 
   async function handleConfirm() {

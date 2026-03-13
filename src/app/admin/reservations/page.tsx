@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { canManageReservations } from "@/lib/admin-permissions"
+import { useCurrentRole } from "@/hooks/useCurrentRole"
 import Badge from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
 import Skeleton from "@/components/ui/Skeleton"
@@ -10,11 +12,12 @@ interface Reservation {
   id: string
   confirmationCode: string
   guest: { firstName: string; lastName: string; email: string }
-  rooms: { room: { number: string; type: { name: string } } }[]
+  rooms?: { room: { number: string; type: { name: string } } }[]
+  assignedRooms?: { room: { number: string; roomType?: { name: string } } }[]
   checkIn: string
   checkOut: string
   status: string
-  totalAmount: string
+  totalAmount: number
   payments: { status: string }[]
 }
 
@@ -27,12 +30,14 @@ const STATUS_BADGE: Record<string, { variant: "success" | "warning" | "danger" |
 }
 
 export default function AdminReservationsPage() {
+  const { role } = useCurrentRole()
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
+  const [pageError, setPageError] = useState("")
 
   useEffect(() => {
     fetchReservations()
@@ -41,15 +46,20 @@ export default function AdminReservationsPage() {
 
   async function fetchReservations() {
     setLoading(true)
+    setPageError("")
     const params = new URLSearchParams({ page: String(page), limit: "15" })
     if (statusFilter) params.set("status", statusFilter)
     if (search) params.set("search", search)
 
     const res = await fetch(`/api/reservations?${params}`)
+    const data = await res.json().catch(() => null)
     if (res.ok) {
-      const data = await res.json()
-      setReservations(data.reservations || [])
-      setPagination(data.pagination || { total: 0, totalPages: 1 })
+      setReservations(data?.reservations || [])
+      setPagination(data?.pagination || { total: 0, totalPages: 1 })
+    } else {
+      setReservations([])
+      setPagination({ total: 0, totalPages: 1 })
+      setPageError(data?.error || "No se pudieron cargar las reservas")
     }
     setLoading(false)
   }
@@ -75,6 +85,12 @@ export default function AdminReservationsPage() {
         <h1 className="font-serif text-2xl font-bold text-navy-900">Reservas</h1>
         <p className="font-sans text-sm text-slate-500">{pagination.total} reservas totales</p>
       </div>
+
+      {!loading && pageError && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="font-sans text-sm text-amber-900">{pageError}</p>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -122,7 +138,8 @@ export default function AdminReservationsPage() {
             </thead>
             <tbody>
               {reservations.map((r) => {
-                const room = r.rooms[0]?.room
+                const roomAssignments = Array.isArray(r.rooms) ? r.rooms : Array.isArray(r.assignedRooms) ? r.assignedRooms : []
+                const room = roomAssignments[0]?.room
                 const statusInfo = STATUS_BADGE[r.status] || { variant: "default" as const, label: r.status }
                 return (
                   <tr key={r.id} className="border-b border-ivory-100 hover:bg-ivory-50 transition-colors">
@@ -132,7 +149,7 @@ export default function AdminReservationsPage() {
                       <p className="font-sans text-xs text-slate-400">{r.guest.email}</p>
                     </td>
                     <td className="px-4 py-3 font-sans text-sm text-slate-600">
-                      {room ? `${room.number} · ${room.type.name}` : "N/A"}
+                      {room ? `${room.number} · ${"type" in room && room.type ? room.type.name : room.roomType?.name || "Sin tipo"}` : "N/A"}
                     </td>
                     <td className="px-4 py-3 font-sans text-xs text-slate-600">
                       {new Date(r.checkIn).toLocaleDateString("es-PE")} → {new Date(r.checkOut).toLocaleDateString("es-PE")}
@@ -145,12 +162,12 @@ export default function AdminReservationsPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        {r.status === "CONFIRMED" && (
+                        {canManageReservations(role) && r.status === "CONFIRMED" && (
                           <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(r.confirmationCode, "CHECKED_IN")}>
                             Check-in
                           </Button>
                         )}
-                        {r.status === "CHECKED_IN" && (
+                        {canManageReservations(role) && r.status === "CHECKED_IN" && (
                           <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(r.confirmationCode, "CHECKED_OUT")}>
                             Check-out
                           </Button>

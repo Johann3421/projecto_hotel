@@ -11,7 +11,8 @@ interface Room {
   floor: number
   status: string
   notes: string | null
-  type: { name: string }
+  type?: { name: string }
+  roomType?: { name: string }
 }
 
 export default function HousekeepingPage() {
@@ -89,10 +90,10 @@ export default function HousekeepingPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Limpieza", count: rooms.filter((r) => r.status === "CLEANING").length, color: "bg-amber-50 border-amber-200 text-amber-700" },
+          { label: "Limpieza", count: rooms.filter((r) => r.status === "HOUSEKEEPING").length, color: "bg-amber-50 border-amber-200 text-amber-700" },
           { label: "Mantenimiento", count: rooms.filter((r) => r.status === "MAINTENANCE").length, color: "bg-red-50 border-red-200 text-red-700" },
+          { label: "Fuera de servicio", count: rooms.filter((r) => r.status === "OUT_OF_ORDER").length, color: "bg-slate-50 border-slate-200 text-slate-700" },
           { label: "Disponibles", count: rooms.filter((r) => r.status === "AVAILABLE").length, color: "bg-green-50 border-green-200 text-green-700" },
-          { label: "Ocupadas", count: rooms.filter((r) => r.status === "OCCUPIED").length, color: "bg-blue-50 border-blue-200 text-blue-700" },
         ].map(({ label, count, color }) => (
           <div key={label} className={`p-4 rounded-xl border ${color}`}>
             <p className="font-sans text-xs font-medium uppercase tracking-wide">{label}</p>

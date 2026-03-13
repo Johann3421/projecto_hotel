@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
+import type { Prisma } from "@/generated/prisma/client"
+import { requireAdminRoles } from "@/lib/admin-auth"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireAdminRoles(["MANAGER", "RECEPTIONIST"])
+  if (!authResult.ok) return authResult.response
+
   const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get("page") || "1")
   const limit = parseInt(searchParams.get("limit") || "20")
   const search = searchParams.get("search")
 
-  const where: any = {}
+  const where: Prisma.GuestWhereInput = {}
   if (search) {
     where.OR = [
       { firstName: { contains: search, mode: "insensitive" } },

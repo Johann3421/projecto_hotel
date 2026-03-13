@@ -56,12 +56,26 @@
 :root {
   --background: #fdfcf9;
   --foreground: #1e293b;
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgb(212 168 67 / 0.14), transparent 28%),
+    linear-gradient(180deg, #fffdf8 0%, #f7f2e7 38%, #fdfcf9 100%);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+::selection {
+  background: rgb(212 168 67 / 0.28);
+  color: #0d1f2d;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(184 146 42 / 0.9);
+  outline-offset: 2px;
 }
 
 /* Utility classes */

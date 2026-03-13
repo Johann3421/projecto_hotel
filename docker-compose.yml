@@ -1,0 +1,54 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-alturas_grand_hotel}?schema=public
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+      NEXT_PUBLIC_HOTEL_NAME: ${NEXT_PUBLIC_HOTEL_NAME:-Alturas Grand Hotel}
+      NEXT_PUBLIC_HOTEL_PHONE: ${NEXT_PUBLIC_HOTEL_PHONE:-+51 62 000 0000}
+      NEXT_PUBLIC_HOTEL_EMAIL: ${NEXT_PUBLIC_HOTEL_EMAIL:-reservas@alturasgrand.pe}
+      NEXT_PUBLIC_HOTEL_STARS: ${NEXT_PUBLIC_HOTEL_STARS:-4}
+      NEXT_PUBLIC_HOTEL_LAT: ${NEXT_PUBLIC_HOTEL_LAT:--9.9270}
+      NEXT_PUBLIC_HOTEL_LNG: ${NEXT_PUBLIC_HOTEL_LNG:--76.2404}
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'node -e "fetch(\"http://127.0.0.1:3000\").then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))"'
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  db:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-alturas_grand_hotel}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-alturas_grand_hotel}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:

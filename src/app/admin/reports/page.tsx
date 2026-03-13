@@ -18,17 +18,55 @@ interface ReportsData {
   dailyRevenue: { date: string; revenue: number }[]
 }
 
+const EMPTY_REPORTS_DATA: ReportsData = {
+  summary: {
+    totalRevenue: 0,
+    paymentCount: 0,
+    reservationCount: 0,
+    averageStayNights: 0,
+    period: "month",
+  },
+  sourceBreakdown: [],
+  roomTypeRevenue: [],
+  dailyRevenue: [],
+}
+
 export default function AdminReportsPage() {
   const [data, setData] = useState<ReportsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState("month")
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
+    setError(null)
     fetch(`/api/admin/reports?period=${period}`)
-      .then((r) => r.json())
-      .then(setData)
-      .catch(console.error)
+      .then(async (r) => {
+        const payload = await r.json().catch(() => null)
+        if (!r.ok || !payload || !payload.summary) {
+          // don't throw here; set friendly state so we avoid noisy console errors
+          setData(EMPTY_REPORTS_DATA)
+          setError(payload?.error || "No se pudieron cargar los reportes en este momento.")
+          return
+        }
+
+        const normalized: ReportsData = {
+          summary: {
+            ...EMPTY_REPORTS_DATA.summary,
+            ...payload.summary,
+          },
+          sourceBreakdown: Array.isArray(payload.sourceBreakdown) ? payload.sourceBreakdown : [],
+          roomTypeRevenue: Array.isArray(payload.roomTypeRevenue) ? payload.roomTypeRevenue : [],
+          dailyRevenue: Array.isArray(payload.dailyRevenue) ? payload.dailyRevenue : [],
+        }
+
+        setData(normalized)
+      })
+      .catch(() => {
+        // network or unexpected failure: show empty data and a friendly message
+        setData(EMPTY_REPORTS_DATA)
+        setError("No se pudieron cargar los reportes en este momento.")
+      })
       .finally(() => setLoading(false))
   }, [period])
 
@@ -77,6 +115,12 @@ export default function AdminReportsPage() {
           ))}
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="font-sans text-sm text-amber-900">{error}</p>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

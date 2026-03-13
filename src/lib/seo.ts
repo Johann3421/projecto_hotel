@@ -1,3 +1,5 @@
+import { getPublicAppUrl } from "@/lib/env"
+
 export function generateSEOMetadata({
   title,
   description,
@@ -9,7 +11,7 @@ export function generateSEOMetadata({
   path?: string
   image?: string
 }) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const baseUrl = getPublicAppUrl()
   const url = `${baseUrl}${path}`
 
   return {
@@ -37,13 +39,15 @@ export function generateSEOMetadata({
 }
 
 export function generateHotelJsonLd() {
+  const baseUrl = getPublicAppUrl()
+
   return {
     "@context": "https://schema.org",
     "@type": "Hotel",
     name: process.env.NEXT_PUBLIC_HOTEL_NAME,
     description:
       "Hotel boutique 4 estrellas en Huánuco con piscina temperada, spa y arquitectura colonial.",
-    url: process.env.NEXT_PUBLIC_APP_URL,
+    url: baseUrl,
     telephone: process.env.NEXT_PUBLIC_HOTEL_PHONE,
     email: process.env.NEXT_PUBLIC_HOTEL_EMAIL,
     starRating: {
@@ -79,7 +83,7 @@ export function generateRoomJsonLd(room: {
   basePrice: number
   slug: string
 }) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const baseUrl = getPublicAppUrl()
   return {
     "@context": "https://schema.org",
     "@type": "HotelRoom",

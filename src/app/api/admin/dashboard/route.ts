@@ -1,8 +1,35 @@
-import { NextRequest, NextResponse } from "next/server"
+import type { Prisma } from "@/generated/prisma/client"
+import { NextResponse } from "next/server"
+import { requireAdminRoles } from "@/lib/admin-auth"
 import { prisma } from "@/lib/prisma"
 
 // Dashboard stats API
-export async function GET(req: NextRequest) {
+type DashboardReservation = Prisma.ReservationGetPayload<{
+  include: {
+    guest: true
+    assignedRooms: {
+      include: {
+        room: {
+          include: {
+            roomType: true
+          }
+        }
+      }
+    }
+  }
+}>
+
+type RoomsByStatusRow = {
+  status: string
+  _count: {
+    status: number
+  }
+}
+
+export async function GET() {
+  const authResult = await requireAdminRoles(["MANAGER", "RECEPTIONIST"])
+  if (!authResult.ok) return authResult.response
+
   try {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -77,11 +104,11 @@ export async function GET(req: NextRequest) {
         monthRevenue: Number(monthRevenue._sum.amount || 0),
         pendingHousekeeping,
       },
-      roomsByStatus: roomsByStatus.map((r: any) => ({
+      roomsByStatus: (roomsByStatus as RoomsByStatusRow[]).map((r) => ({
         status: r.status,
         count: r._count.status,
       })),
-      recentReservations: recentReservations.map((r: any) => ({
+      recentReservations: (recentReservations as DashboardReservation[]).map((r) => ({
         id: r.id,
         confirmationCode: r.confirmationCode,
         guestName: `${r.guest.firstName} ${r.guest.lastName}`,

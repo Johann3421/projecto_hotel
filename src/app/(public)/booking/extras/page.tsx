@@ -37,9 +37,9 @@ export default function BookingExtrasPage() {
       router.replace("/booking/guest")
       return
     }
+
     fetchExtras()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [canProceedToExtras, roomTypeId, router])
 
   async function fetchExtras() {
     try {
@@ -84,6 +84,14 @@ export default function BookingExtrasPage() {
     } else {
       updateExtraQuantity(extraId, quantity)
     }
+  }
+
+  if (!canProceedToExtras) {
+    return (
+      <div className="py-20 text-center">
+        <div className="w-8 h-8 border-2 border-gold-400 border-t-transparent rounded-full animate-spin mx-auto" />
+      </div>
+    )
   }
 
   return (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getOccupiedRoomIds, calculateDynamicPrice } from "@/lib/availability"
+import { getPrimaryRoomImage } from "@/lib/room-stock-images"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
         pricePerNight,
         totalPrice: pricePerNight * nights,
         nights,
-        imageUrl: rt.images[0]?.url || null,
+        imageUrl: getPrimaryRoomImage(rt.slug, rt.name, rt.images[0]?.url),
         amenities: rt.amenities.map((a: any) => a.amenity.name),
       }
     })

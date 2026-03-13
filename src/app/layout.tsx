@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Lora, Lato } from "next/font/google"
+import { getPublicAppUrl } from "@/lib/env"
 import "./globals.css"
 
 const lora = Lora({
@@ -18,7 +19,7 @@ const lato = Lato({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(getPublicAppUrl()),
   title: {
     default: "Alturas Grand Hotel — Hotel Boutique 4 Estrellas en Huánuco",
     template: "%s | Alturas Grand Hotel Huánuco",

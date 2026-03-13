@@ -1,6 +1,6 @@
 "use client"
 import { create } from "zustand"
-import { persist, createJSONStorage } from "zustand/middleware"
+import { persist, createJSONStorage, type StateStorage } from "zustand/middleware"
 import { GuestFormData, ExtraSelection, RoomSelectionData } from "@/types"
 
 interface BookingState {
@@ -35,6 +35,12 @@ interface BookingState {
 }
 
 const TAX_RATE = 0.18
+
+const noopStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+}
 
 export const useBookingStore = create<BookingState>()(
   persist(
@@ -161,7 +167,9 @@ export const useBookingStore = create<BookingState>()(
     }),
     {
       name: "alturas-booking",
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() =>
+        typeof window === "undefined" ? noopStorage : window.sessionStorage
+      ),
     }
   )
 )

@@ -9,17 +9,17 @@ interface OccupancyChartProps {
 const COLORS: Record<string, string> = {
   AVAILABLE: "#22c55e",
   OCCUPIED: "#3b82f6",
-  CLEANING: "#f59e0b",
+  HOUSEKEEPING: "#f59e0b",
   MAINTENANCE: "#ef4444",
-  BLOCKED: "#94a3b8",
+  OUT_OF_ORDER: "#94a3b8",
 }
 
 const LABELS: Record<string, string> = {
   AVAILABLE: "Disponible",
   OCCUPIED: "Ocupada",
-  CLEANING: "Limpieza",
+  HOUSEKEEPING: "Limpieza",
   MAINTENANCE: "Mantenimiento",
-  BLOCKED: "Bloqueada",
+  OUT_OF_ORDER: "Fuera de servicio",
 }
 
 export default function OccupancyChart({ data }: OccupancyChartProps) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { requireAdminRoles } from "@/lib/admin-auth"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(
@@ -26,7 +27,7 @@ export async function GET(
       return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 })
     }
 
-    const roomType = (reservation as any).assignedRooms[0]?.room?.roomType
+    const roomType = reservation.assignedRooms[0]?.room?.roomType
     const nights = Math.ceil(
       (reservation.checkOut.getTime() - reservation.checkIn.getTime()) / (1000 * 60 * 60 * 24)
     )
@@ -41,10 +42,10 @@ export async function GET(
       children: reservation.children,
       guestName: `${reservation.guest.firstName} ${reservation.guest.lastName}`,
       guestEmail: reservation.guest.email,
-      subtotal: Number((reservation as any).totalRoomCost),
+      subtotal: Number(reservation.totalRoomCost),
       tax: Number(reservation.taxAmount),
       total: Number(reservation.totalAmount),
-      extras: reservation.extras.map((e: any) => ({
+      extras: reservation.extras.map((e) => ({
         name: e.extra.name,
         total: Number(e.totalPrice),
       })),
@@ -61,6 +62,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  const authResult = await requireAdminRoles(["MANAGER", "RECEPTIONIST"])
+  if (!authResult.ok) return authResult.response
+
   const { code } = await params
   const body = await req.json()
 

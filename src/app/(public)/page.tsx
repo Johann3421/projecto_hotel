@@ -1,41 +1,37 @@
-import dynamic from "next/dynamic"
 import Image from "next/image"
 import Link from "next/link"
+import { fallbackRoomTypes } from "@/lib/fallback-room-types"
 import { prisma } from "@/lib/prisma"
+import { getPrimaryRoomImage, HOTEL_HERO_IMAGE } from "@/lib/room-stock-images"
 import { generateHotelJsonLd } from "@/lib/seo"
 import AvailabilitySearchBar from "@/components/public/AvailabilitySearchBar"
 import RoomCard from "@/components/public/RoomCard"
 import AmenityCard from "@/components/public/AmenityCard"
 import TestimonialSlider from "@/components/public/TestimonialSlider"
+import FloatingOrbsShell from "@/components/three/FloatingOrbsShell"
+import HotelKeySceneShell from "@/components/three/HotelKeySceneShell"
+import RoomTourSceneShell from "@/components/three/RoomTourSceneShell"
 import StarRating from "@/components/ui/StarRating"
-import Skeleton from "@/components/ui/Skeleton"
 import Button from "@/components/ui/Button"
 import { Waves, Flower2, UtensilsCrossed, Dumbbell, Wifi, HeadphonesIcon } from "lucide-react"
 
-const HotelKeyScene = dynamic(() => import("@/components/three/HotelKeyScene"), {
-  ssr: false,
-  loading: () => <Skeleton variant="card" className="h-[420px] w-full rounded-2xl" />,
-})
-
-const RoomTourScene = dynamic(() => import("@/components/three/RoomTourScene"), {
-  ssr: false,
-  loading: () => <Skeleton variant="card" className="h-[400px] w-full rounded-2xl" />,
-})
-
-const FloatingOrbs = dynamic(() => import("@/components/three/FloatingOrbs"), {
-  ssr: false,
-  loading: () => null,
-})
+export const dynamic = "force-dynamic"
 
 export default async function HomePage() {
-  const roomTypes = await prisma.roomType.findMany({
-    take: 3,
-    orderBy: { basePrice: "desc" },
-    include: {
-      images: { take: 1, orderBy: { position: "asc" } },
-      amenities: { take: 4, include: { amenity: true } },
-    },
-  })
+  let roomTypes: any[] = fallbackRoomTypes
+  let usingFallbackRooms = false
+
+  try {
+    roomTypes = await prisma.roomType.findMany({
+      orderBy: { basePrice: "desc" },
+      include: {
+        images: { take: 1, orderBy: { position: "asc" } },
+        amenities: { take: 4, include: { amenity: true } },
+      },
+    })
+  } catch {
+    usingFallbackRooms = true
+  }
 
   const jsonLd = generateHotelJsonLd()
 
@@ -47,11 +43,11 @@ export default async function HomePage() {
       />
 
       {/* Hero Section */}
-      <section className="relative h-[90vh] min-h-[600px] overflow-hidden">
+      <section className="relative overflow-hidden">
         {/* Background Image with Ken Burns */}
         <div className="absolute inset-0 animate-room-pan">
           <Image
-            src="/images/hero-hotel.jpg"
+            src={HOTEL_HERO_IMAGE}
             alt="Alturas Grand Hotel - Fachada colonial iluminada al atardecer"
             fill
             priority
@@ -63,8 +59,8 @@ export default async function HomePage() {
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-navy-900/80 via-navy-900/50 to-transparent" />
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
+        <div className="relative mx-auto flex min-h-[680px] max-w-7xl items-center px-4 pb-24 pt-16 sm:px-6 lg:px-8 lg:pb-28">
+          <div className="grid w-full grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center">
             {/* Text Content */}
             <div className="animate-fade-luxury">
               <div className="flex items-center gap-2 mb-4">
@@ -87,25 +83,27 @@ export default async function HomePage() {
 
             {/* 3D Key Scene */}
             <div className="hidden lg:block h-[420px] w-full">
-              <HotelKeyScene />
+              <HotelKeySceneShell />
             </div>
           </div>
         </div>
 
-        {/* Search Bar - overlapping the hero */}
-        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 z-10 px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl">
-            <AvailabilitySearchBar />
-          </div>
-        </div>
       </section>
 
-      {/* Spacer for search bar overlap */}
-      <div className="h-20" />
+      <div className="relative z-20 mx-auto -mt-12 max-w-4xl px-4 sm:-mt-14 sm:px-6 lg:-mt-16 lg:px-8">
+        <AvailabilitySearchBar className="border border-white/60 shadow-[0_30px_80px_rgba(15,23,42,0.18)]" />
+      </div>
 
       {/* Featured Rooms */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="px-4 pb-20 pt-24 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
+          {usingFallbackRooms && (
+            <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+              <p className="font-sans text-sm text-amber-900">
+                No se pudo conectar a la base de datos. Mostramos habitaciones de demostración mientras corriges `DATABASE_URL`.
+              </p>
+            </div>
+          )}
           <div className="text-center mb-12">
             <p className="font-sans text-xs font-bold uppercase tracking-widest text-gold-500 mb-2">Habitaciones & Suites</p>
             <h2 className="font-serif text-2xl lg:text-3xl font-medium italic text-navy-900">
@@ -114,7 +112,7 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {roomTypes.map((rt: any, i: any) => (
+            {roomTypes.map((rt: any, i: number) => (
               <RoomCard
                 key={rt.id}
                 name={rt.name}
@@ -124,7 +122,7 @@ export default async function HomePage() {
                 maxGuests={rt.maxGuests}
                 sizeSqm={rt.sizeSqm}
                 bedConfiguration={rt.bedConfiguration}
-                imageUrl={rt.images[0]?.url || "/images/rooms/placeholder.jpg"}
+                imageUrl={getPrimaryRoomImage(rt.slug, rt.name, rt.images[0]?.url)}
                 amenities={rt.amenities.map((a: any) => a.amenity.name)}
                 featured={i === 0}
               />
@@ -166,7 +164,7 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="h-[400px] rounded-2xl overflow-hidden border border-navy-700">
-              <RoomTourScene />
+              <RoomTourSceneShell />
             </div>
           </div>
         </div>
@@ -175,7 +173,7 @@ export default async function HomePage() {
       {/* Amenities */}
       <section className="relative py-20 bg-ivory-100 overflow-hidden">
         <div className="absolute inset-0 opacity-30 pointer-events-none">
-          <FloatingOrbs />
+          <FloatingOrbsShell />
         </div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">

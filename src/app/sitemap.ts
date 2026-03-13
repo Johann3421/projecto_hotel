@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next"
+import { getPublicAppUrl } from "@/lib/env"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://alturasgrand.pe"
+  const baseUrl = getPublicAppUrl()
 
   const staticPages = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: "weekly" as const, priority: 1.0 },
